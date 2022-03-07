@@ -50,8 +50,15 @@ public class HandshakeEntry {
 
         LoginData.LoginDataBuilder builder = LoginData.builder();
         builder.displayName(this.extraData.get("displayName").getAsString());
-        builder.uuid(UUID.fromString(this.extraData.get("identity").getAsString()));
         builder.xuid(this.extraData.get("XUID").getAsString());
+        if (this.xboxAuthed) {
+            builder.xuidLong(Long.parseLong(this.extraData.get("XUID").getAsString()));
+            if (proxy.getConfiguration().getUuidOverrideLeastBytes() != -1) {
+                UUID uuid = new UUID(proxy.getConfiguration().getUuidOverrideLeastBytes(), Long.parseLong(this.extraData.get("XUID").getAsString()));
+                this.extraData.addProperty("identity", uuid.toString());
+            }
+        }
+        builder.uuid(UUID.fromString(this.extraData.get("identity").getAsString()));
         builder.xboxAuthed(this.xboxAuthed);
         builder.protocol(this.protocol);
         builder.joinHostname(this.clientData.get("ServerAddress").getAsString().split(":")[0]);

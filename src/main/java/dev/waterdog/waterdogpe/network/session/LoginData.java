@@ -43,6 +43,7 @@ public class LoginData {
     private final String displayName;
     private final UUID uuid;
     private final String xuid;
+    private final long xuidLong;
     private final boolean xboxAuthed;
     private final InetSocketAddress address;
     private final ProtocolVersion protocol;
@@ -90,6 +91,10 @@ public class LoginData {
 
     public String getXuid() {
         return this.xuid;
+    }
+
+    public long getXuidLong() {
+        return this.xuidLong;
     }
 
     public boolean isXboxAuthed() {
