@@ -147,6 +147,13 @@ public class SwitchDownstreamHandler extends AbstractDownstreamHandler {
         }
         scoreboards.clear();
 
+        LongSet blobs = this.player.getChunkBlobs();
+        if (this.player.getProtocol().isBefore(ProtocolVersion.MINECRAFT_PE_1_18_30) &&
+                this.player.getLoginData().getCachePacket().isSupported() && !blobs.isEmpty()) {
+            injectChunkCacheBlobs(this.player.getUpstream(), blobs);
+        }
+        this.player.getChunkBlobs().clear();
+
         injectGameMode(this.player.getUpstream(), packet.getPlayerGameType());
         injectSetDifficulty(this.player.getUpstream(), packet.getDifficulty());
         injectPosition(this.player.getUpstream(), rewriteData.getSpawnPosition(), rewriteData.getRotation(), rewriteData.getEntityId());
@@ -161,12 +168,17 @@ public class SwitchDownstreamHandler extends AbstractDownstreamHandler {
         rewriteData.setDimension(newDimension);
         rewriteData.setTransferCallback(transferCallback);
         this.player.setDimensionChangeState(TransferCallback.TRANSFER_PHASE_1);
-        injectDimensionChange(this.player.getUpstream(), newDimension, packet.getPlayerPosition());
+        injectDimensionChange(this.player.getUpstream(), newDimension, packet.getPlayerPosition(), this.player.getProtocol());
 
         if (newDimension == packet.getDimensionId()) {
             // Transfer between different dimensions
             // Simulate two dim-change behaviour
             transferCallback.onDimChangeSuccess();
+        }  else {
+            // Force client to exit first dim screen after one second
+            PlayStatusPacket status = new PlayStatusPacket();
+            status.setStatus(PlayStatusPacket.Status.PLAYER_SPAWN);
+            this.player.getProxy().getScheduler().scheduleDelayed(() -> this.player.sendPacket(status), 20);
         }
         this.getDownstream().onServerConnected(player);
         throw CancelSignalException.CANCEL;

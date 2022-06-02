@@ -15,7 +15,6 @@
 
 package dev.waterdog.waterdogpe.player;
 
-import com.google.common.base.Preconditions;
 import com.nukkitx.math.vector.Vector2f;
 import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.math.vector.Vector3i;
@@ -27,9 +26,11 @@ import com.nukkitx.protocol.bedrock.data.LevelEventType;
 import com.nukkitx.protocol.bedrock.data.ScoreInfo;
 import com.nukkitx.protocol.bedrock.data.entity.*;
 import com.nukkitx.protocol.bedrock.packet.*;
+import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,35 +50,62 @@ public class PlayerRewriteUtils {
     public static final int DIMENSION_NETHER = 1;
     public static final int DIMENSION_END = 2;
 
-    private static final byte[] fakeChunkData;
+    // Current format for 1.18+ versions
+    private static final byte[] fakeChunkDataBlameMojang;
+    // This are 1.18.30+
+    private static final byte[] fakeChunkDataOverworld;
+    private static final byte[] fakeChunkDataNether;
+    private static final byte[] fakeChunkDataEnd;
+    private static final byte[] emptyChukRaw;
 
     static {
         defaultChunkRadius.setRadius(8);
-
         // Here we create hardcoded "empty" chunk which is accepted by client
         // Because client does not accept empty array list we try to hardcode this
         // Keep in mind that this CAN change with newer versions!
-        final ByteBuf chunkdata = Unpooled.buffer();
-        chunkdata.writeByte(1); // 1 section
-        chunkdata.writeByte(8); // New subchunk version!
-        chunkdata.writeByte(1); // Zero block storages :O
-        chunkdata.writeByte((1 << 1) | 1);  // Runtimeflag and palette id.
-        chunkdata.writeZero(512);
-        VarInts.writeInt(chunkdata, 1); // Palette size
-        VarInts.writeInt(chunkdata, 0); // Air
-        chunkdata.writeZero(512); // Map height
-        chunkdata.writeZero(256); // Biome data.
-        chunkdata.writeByte(0); // Borders
 
-        ByteBuf buffer = Unpooled.buffer();
-        VarInts.writeInt(buffer, chunkdata.readUnsignedByte());
-        buffer.writeByte(0);
-        VarInts.writeInt(buffer, chunkdata.readableBytes());
-        buffer.writeBytes(chunkdata);
+        // Biome sections are just hardcoded to 25 without any reason- thank you Mojang
+        fakeChunkDataBlameMojang = createChunkData(1, 25);
+        // Since 1.18.30 biomes count is equal to max dim height >> 4
+        fakeChunkDataOverworld = createChunkData(1, 24);
+        fakeChunkDataNether = createChunkData(1, 8);
+        fakeChunkDataEnd = createChunkData(1, 16);
+        emptyChukRaw = createChunkDataRaw();
+    }
 
-        fakeChunkData = new byte[buffer.readableBytes()];
-        buffer.readBytes(fakeChunkData);
-        Preconditions.checkArgument(fakeChunkData.length > 0);
+    private static byte[] createChunkDataRaw() {
+        final ByteBuf buffer = Unpooled.buffer();
+        buffer.writeByte(8); // section version
+        buffer.writeByte(0); // zero block storages
+
+        byte[] bytes = new byte[buffer.readableBytes()];
+        buffer.readBytes(bytes);
+        return bytes;
+    }
+
+    private static byte[] createChunkData(int sections, int biomeSections) {
+        final ByteBuf buffer = Unpooled.buffer();
+        for (int i = 0; i < sections; i++) {
+            buffer.writeByte(8); // section version
+            buffer.writeByte(0); // zero block storages
+            // writePalette(buffer, 0); AIR in palette
+        }
+        // buffer.writeZero(512); // map height - ??
+        for (int i = 0; i < biomeSections; i++) {
+            writePalette(buffer, 0); // paletted biomes - 1.18
+        }
+        buffer.writeByte(0); // Borders
+
+        byte[] bytes = new byte[buffer.readableBytes()];
+        buffer.readBytes(bytes);
+        return bytes;
+    }
+
+    private static void writePalette(ByteBuf buffer, int runtimeId) {
+        buffer.writeByte((1 << 1) | 1);  // runtime flag and palette id
+        buffer.writeZero(512); // 128 * 4
+        VarInts.writeInt(buffer, 1); // Palette size
+        VarInts.writeInt(buffer, runtimeId);
     }
 
     public static long rewriteId(long from, long rewritten, long origin) {
@@ -254,7 +282,7 @@ public class PlayerRewriteUtils {
         session.sendPacket(packet);
     }
 
-    public static void injectDimensionChange(BedrockSession session, int dimensionId, Vector3f position) {
+    public static void injectDimensionChange(BedrockSession session, int dimensionId, Vector3f position, ProtocolVersion version) {
         if (session == null || session.isClosed()){
             return;
         }
@@ -264,25 +292,56 @@ public class PlayerRewriteUtils {
         packet.setDimension(dimensionId);
         session.sendPacket(packet);
         injectChunkPublisherUpdate(session, position.toInt(), 3);
-        injectEmptyChunks(session, position, 3);
+        injectEmptyChunks(session, position, 3, dimensionId, version);
     }
 
-    public static void injectEmptyChunks(BedrockSession session, Vector3f spawnPosition, int radius){
+    public static void injectEmptyChunks(BedrockSession session, Vector3f spawnPosition, int radius, int dimension, ProtocolVersion version) {
         int chunkPositionX = spawnPosition.getFloorX() >> 4;
         int chunkPositionZ = spawnPosition.getFloorZ() >> 4;
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
-                injectEmptyChunk(session, chunkPositionX + x, chunkPositionZ + z);
+                injectEmptyChunk(session, chunkPositionX + x, chunkPositionZ + z, dimension, version);
             }
         }
     }
 
-    public static void injectEmptyChunk(BedrockSession session, int chunkX, int chunkZ){
+    public static void injectEmptyChunk(BedrockSession session, int chunkX, int chunkZ, int dimension, ProtocolVersion version) {
         LevelChunkPacket packet = new LevelChunkPacket();
         packet.setChunkX(chunkX);
         packet.setChunkZ(chunkZ);
-        // packet.setData(fakeChunkData);
-        packet.setData(new byte[257]);
+        packet.setCachingEnabled(false);
+        if (version.isAfterOrEqual(ProtocolVersion.MINECRAFT_PE_1_18_30)) {
+            packet.setSubChunksLength(1);
+            switch (dimension) {
+                case DIMENSION_NETHER:
+                    packet.setData(fakeChunkDataNether);
+                    break;
+                case DIMENSION_END:
+                    packet.setData(fakeChunkDataEnd);
+                    break;
+                case DIMENSION_OVERWORLD:
+                default:
+                    packet.setData(fakeChunkDataOverworld);
+                    break;
+            }
+        } else if (version.isAfterOrEqual(ProtocolVersion.MINECRAFT_PE_1_18_0)) {
+            packet.setSubChunksLength(1);
+            packet.setData(fakeChunkDataBlameMojang);
+        } else {
+            packet.setData(new byte[257]);
+        }
+        session.sendPacket(packet);
+    }
+
+    public static void injectChunkCacheBlobs(BedrockSession session, LongSet blobs) {
+        if (session == null || session.isClosed()){
+            return;
+        }
+
+        ClientCacheMissResponsePacket packet = new ClientCacheMissResponsePacket();
+        for (long blob : blobs) {
+            packet.getBlobs().put(blob, emptyChukRaw);
+        }
         session.sendPacket(packet);
     }
 
