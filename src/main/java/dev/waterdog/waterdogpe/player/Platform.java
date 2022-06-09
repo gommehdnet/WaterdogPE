@@ -31,18 +31,18 @@ public enum Platform {
     WINDOWS_10("Windows 10", 7),
     WINDOWS("Windows", 8),
     DEDICATED("Dedicated", 9),
-    PLAYSTATION("PlayStation", 10),
-    SWITCH("Switch", 11, 12),
+    TVOS("TVOS", 10),
+    PLAYSTATION("PlayStation", 11),
+    SWITCH("Switch", 12),
     XBOX_ONE("Xbox One", 13),
-    WINDOWS_PHONE("Windows Phone", 14);
+    WINDOWS_PHONE("Windows Phone", 14),
+    LINUX("Linux", 15);
 
     private static Map<Integer, Platform> PLATFORM_BY_ID = new HashMap<>();
 
     static {
         for (Platform platform : Platform.values()) {
-            for (int id : platform.getIds()) {
-                PLATFORM_BY_ID.put(id, platform);
-            }
+            PLATFORM_BY_ID.put(platform.getId(), platform);
         }
     }
 
@@ -54,15 +54,17 @@ public enum Platform {
         return Platform.UNKNOWN;
     }
 
+    public static Platform[] VALUES = values();
+
     @Getter
     private final String name;
 
     @Getter
-    private final int[] ids;
+    private final int id;
 
-    Platform(String name, int... ids) {
+    Platform(String name, int id) {
         this.name = name;
-        this.ids = ids;
+        this.id = id;
     }
 
 
