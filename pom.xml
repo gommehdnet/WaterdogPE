@@ -8,7 +8,7 @@
     </description>
     <groupId>dev.waterdog.waterdogpe</groupId>
     <artifactId>waterdog</artifactId>
-    <version>1.1.8-SNAPSHOT</version>
+    <version>1.1.8-GHD-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -37,16 +37,15 @@
 
     <distributionManagement>
         <repository>
-            <id>central</id>
-            <name>waterdog-releases</name>
-            <url>https://repo.waterdog.dev/artifactory/releases</url>
+            <id>gomme-releases</id>
+            <url>https://repo.gomme.dev/repository/releases/</url>
         </repository>
         <snapshotRepository>
-            <id>snapshots</id>
-            <name>waterdog-snapshots</name>
-            <url>https://repo.waterdog.dev/artifactory/snapshots</url>
+            <id>gomme-snapshots</id>
+            <url>https://repo.gomme.dev/repository/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+
 
     <dependencies>
         <dependency>
