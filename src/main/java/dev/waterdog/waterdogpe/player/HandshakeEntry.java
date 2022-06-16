@@ -54,7 +54,7 @@ public class HandshakeEntry {
         if (this.xboxAuthed) {
             builder.xuidLong(Long.parseLong(this.extraData.get("XUID").getAsString()));
             if (proxy.getConfiguration().getUuidOverrideLeastBytes() != -1) {
-                UUID uuid = new UUID(proxy.getConfiguration().getUuidOverrideLeastBytes(), Long.parseLong(this.extraData.get("XUID").getAsString()));
+                UUID uuid = new UUID(Long.parseLong(this.extraData.get("XUID").getAsString()), proxy.getConfiguration().getUuidOverrideLeastBytes());
                 this.extraData.addProperty("identity", uuid.toString());
             }
         }
