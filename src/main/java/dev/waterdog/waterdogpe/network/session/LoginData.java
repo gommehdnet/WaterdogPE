@@ -43,6 +43,7 @@ public class LoginData {
 
     private final String displayName;
     private final UUID uuid;
+    private final UUID mojangUuid;
     private final String xuid;
     private final long xuidLong;
     private final boolean xboxAuthed;
@@ -111,6 +112,10 @@ public class LoginData {
 
     public UUID getUuid() {
         return this.uuid;
+    }
+
+    public UUID getMojangUuid() {
+        return mojangUuid;
     }
 
     public InetSocketAddress getAddress() {

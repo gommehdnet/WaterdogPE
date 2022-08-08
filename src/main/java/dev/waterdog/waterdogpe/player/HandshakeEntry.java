@@ -51,9 +51,11 @@ public class HandshakeEntry {
         LoginData.LoginDataBuilder builder = LoginData.builder();
         builder.displayName(this.extraData.get("displayName").getAsString());
         builder.xuid(this.extraData.get("XUID").getAsString());
+        builder.mojangUuid(UUID.fromString(this.extraData.get("identity").getAsString()));
         if (this.xboxAuthed) {
             builder.xuidLong(Long.parseLong(this.extraData.get("XUID").getAsString()));
             if (proxy.getConfiguration().getUuidOverrideLeastBytes() != -1) {
+                this.extraData.addProperty("mojangUuid", this.extraData.get("identity").getAsString());
                 UUID uuid = new UUID(Long.parseLong(this.extraData.get("XUID").getAsString()), proxy.getConfiguration().getUuidOverrideLeastBytes());
                 this.extraData.addProperty("identity", uuid.toString());
             }
