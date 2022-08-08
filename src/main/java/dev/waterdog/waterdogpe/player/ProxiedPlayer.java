@@ -734,6 +734,10 @@ public class ProxiedPlayer implements CommandSender {
         return this.loginData.getUuid();
     }
 
+    public UUID getMojangUniqueId() {
+        return this.loginData.getMojangUuid();
+    }
+
     public String getXuid() {
         return this.loginData.getXuid();
     }
