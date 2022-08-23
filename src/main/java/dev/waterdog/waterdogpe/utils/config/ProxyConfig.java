@@ -154,6 +154,10 @@ public class ProxyConfig extends YamlConfig {
     @Comment("When value is not -1, user uuids get overwritten based on XUID and the submitted Value")
     private long uuidOverrideLeastBytes = -1;
 
+    @Path("enable_statistics")
+    @Comment("Enable anonymous statistics that are sent to bstats. For more information, check out our bstats page at https://bstats.org/plugin/server-implementation/WaterdogPE/15678")
+    private boolean enableAnonymousStatistics = true;
+
     public ProxyConfig(File file) {
         this.CONFIG_HEADER = new String[]{"Waterdog Main Configuration file", "Configure your desired network settings here."};
         this.CONFIG_FILE = file;
@@ -324,5 +328,9 @@ public class ProxyConfig extends YamlConfig {
 
     public int getIdleThreads() {
         return this.defaultIdleThreads < 1 ? Runtime.getRuntime().availableProcessors() : this.defaultIdleThreads;
+    }
+
+    public boolean isEnableAnonymousStatistics() {
+        return enableAnonymousStatistics;
     }
 }
