@@ -88,7 +88,7 @@ public class TransferCallback {
         rewriteData.setTransferCallback(null);
 
         StopSoundPacket soundPacket = new StopSoundPacket();
-        soundPacket.setSoundName("portal.travel");
+        soundPacket.setSoundName("none");
         soundPacket.setStoppingAllSound(true);
         this.player.sendPacketImmediately(soundPacket);
 

@@ -49,7 +49,7 @@ public class ConnectedUpstreamHandler extends AbstractUpstreamHandler {
         if (transferCallback != null && transferCallback.onDimChangeSuccess()) {
             throw CancelSignalException.CANCEL;
         }
-        return false;
+        return packet.getAction().equals(PlayerActionType.DIMENSION_CHANGE_SUCCESS);
     }
 
     @Override
