@@ -225,7 +225,6 @@ public class EntityMap implements BedrockPacketHandler {
         }
 
         for (PlayerListPacket.Entry entry : packet.getEntries()) {
-            entry.setXuid(this.player.getXuid());
             entry.setEntityId(PlayerRewriteUtils.rewriteId(entry.getEntityId(), this.rewrite.getEntityId(), this.rewrite.getOriginalEntityId()));
         }
         return true;
