@@ -16,19 +16,29 @@
 package dev.waterdog.waterdogpe.network.protocol.codec;
 
 import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
-import com.nukkitx.protocol.bedrock.v560.BedrockPacketHelper_v560;
+import com.nukkitx.protocol.bedrock.packet.CommandRequestPacket;
+import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
+import com.nukkitx.protocol.bedrock.v567.BedrockPacketHelper_v567;
+import com.nukkitx.protocol.bedrock.v567.serializer.CommandRequestSerializer_v567;
+import com.nukkitx.protocol.bedrock.v567.serializer.StartGameSerializer_v567;
 import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
 
-public class BedrockCodec560 extends BedrockCodec557 {
+public class BedrockCodec567 extends BedrockCodec560 {
 
     @Override
     public ProtocolVersion getProtocol() {
-        return ProtocolVersion.MINECRAFT_PE_1_19_50;
+        return ProtocolVersion.MINECRAFT_PE_1_19_60;
     }
 
     @Override
     public void buildCodec(BedrockPacketCodec.Builder builder) {
         super.buildCodec(builder);
-        builder.helper(BedrockPacketHelper_v560.INSTANCE);
+        builder.helper(BedrockPacketHelper_v567.INSTANCE);
+
+        builder.deregisterPacket(StartGamePacket.class);
+        builder.registerPacket(StartGamePacket.class, StartGameSerializer_v567.INSTANCE, 11);
+
+        builder.deregisterPacket(CommandRequestPacket.class);
+        builder.registerPacket(CommandRequestPacket.class, CommandRequestSerializer_v567.INSTANCE, 77);
     }
 }
