@@ -282,4 +282,10 @@ public class EntityMap implements BedrockPacketHandler {
         packet.setUniqueEntityId(PlayerRewriteUtils.rewriteId(packet.getUniqueEntityId(), this.rewrite.getEntityId(), this.rewrite.getOriginalEntityId()));
         return true;
     }
+
+    @Override
+    public boolean handle(ClientCheatAbilityPacket packet) {
+        packet.setUniqueEntityId(PlayerRewriteUtils.rewriteId(packet.getUniqueEntityId(), this.rewrite.getEntityId(), this.rewrite.getOriginalEntityId()));
+        return true;
+    }
 }
