@@ -19,10 +19,6 @@ import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
 import com.nukkitx.protocol.bedrock.v560.BedrockPacketHelper_v560;
 import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
 
-/**
- * @author Kaooot
- * @version 1.0
- */
 public class BedrockCodec560 extends BedrockCodec557 {
 
     @Override
