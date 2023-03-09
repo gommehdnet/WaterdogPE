@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 WaterdogTEAM
+ * Copyright 2022 WaterdogTEAM
  * Licensed under the GNU General Public License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,7 @@ package dev.waterdog.waterdogpe.utils;
 import dev.waterdog.waterdogpe.ProxyServer;
 import dev.waterdog.waterdogpe.network.serverinfo.ServerInfoMap;
 import dev.waterdog.waterdogpe.utils.config.*;
+import dev.waterdog.waterdogpe.utils.config.proxy.ProxyConfig;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.cubespace.Yamler.Config.InvalidConfigurationException;
@@ -25,6 +26,8 @@ import net.cubespace.Yamler.Config.InvalidConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Optional;
+import java.util.ServiceLoader;
 
 public class ConfigurationManager {
 
@@ -80,6 +83,13 @@ public class ConfigurationManager {
             }
         }
         this.langConfig = new LangConfig(langFile);
+    }
+
+    public <T> T loadServiceProvider(String providerName, Class<T> clazz) {
+        ServiceLoader<T> loader = ServiceLoader.load(clazz);
+        Optional<ServiceLoader.Provider<T>> optional = loader.stream().filter(provider -> provider.type().getSimpleName().equals(providerName) ||
+                provider.type().getName().equals(providerName)).findFirst();
+        return optional.isPresent() ? optional.get().get() : loader.findFirst().orElse(null);
     }
 
     public ProxyServer getProxy() {

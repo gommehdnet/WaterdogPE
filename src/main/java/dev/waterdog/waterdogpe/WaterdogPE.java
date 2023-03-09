@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 WaterdogTEAM
+ * Copyright 2022 WaterdogTEAM
  * Licensed under the GNU General Public License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -26,6 +26,8 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WaterdogPE {
 
@@ -37,7 +39,12 @@ public class WaterdogPE {
         Thread.currentThread().setName("WaterdogPE-main");
         System.out.println("Starting WaterdogPE....");
         System.setProperty("log4j.skipJansi", "false");
-        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
+        
+        if (versionInfo.debug()) {
+            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
+        } else {
+            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
+        }
 
         MainLogger logger = MainLogger.getLogger();
         logger.info("§bStarting WaterDogPE proxy software!");
@@ -62,7 +69,7 @@ public class WaterdogPE {
         try {
             new ProxyServer(logger, DATA_PATH, PLUGIN_PATH);
         } catch (Exception e) {
-            logger.logException(e);
+            logger.throwing(e);
             shutdownHook();
         }
     }
@@ -72,6 +79,7 @@ public class WaterdogPE {
      */
     protected static void shutdownHook() {
         LogManager.shutdown();
+        System.exit(0); // force exit
     }
 
     private static VersionInfo loadVersion() {
@@ -109,6 +117,11 @@ public class WaterdogPE {
         String version = System.getProperty("java.version");
         if (version.startsWith("1.")) {
             return Integer.parseInt(version.substring(2, 3));
+        }
+
+        Matcher versionMatcher = Pattern.compile("\\d+").matcher(version);
+        if (versionMatcher.find()) {
+            version = versionMatcher.group(0);
         }
 
         int index = version.indexOf(".");
