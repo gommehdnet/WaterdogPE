@@ -15,8 +15,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <raklib.version>1.6.28-SNAPSHOT</raklib.version>
-        <protocol.protocol>bedrock-v567</protocol.protocol>
-        <protocol.version>2.9.17-SNAPSHOT</protocol.version>
+        <protocol.protocol>bedrock-v575</protocol.protocol>
+        <protocol.version>develop-28a683eab5-1</protocol.version>
         <log4j2.version>2.17.1</log4j2.version>
         <jline.version>3.21.0</jline.version>
     </properties>
@@ -33,6 +33,10 @@
         <repository>
             <id>waterdog</id>
             <url>https://repo.waterdog.dev/artifactory/main/</url>
+        </repository>
+        <repository>
+            <id>jitpack</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
@@ -157,7 +161,7 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.nukkitx.protocol</groupId>
+            <groupId>com.github.Kaooot.Protocol</groupId>
             <artifactId>${protocol.protocol}</artifactId>
             <version>${protocol.version}</version>
             <scope>compile</scope>
