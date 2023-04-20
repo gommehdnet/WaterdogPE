@@ -15,8 +15,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <raklib.version>1.6.28-SNAPSHOT</raklib.version>
-        <protocol.protocol>bedrock-v575</protocol.protocol>
-        <protocol.version>develop-28a683eab5-1</protocol.version>
+        <protocol.protocol>bedrock-v582</protocol.protocol>
+        <protocol.version>develop-a19835b1f1-1</protocol.version>
         <log4j2.version>2.17.1</log4j2.version>
         <jline.version>3.21.0</jline.version>
     </properties>
