@@ -15,13 +15,17 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <raklib.version>1.6.28-SNAPSHOT</raklib.version>
-        <protocol.protocol>bedrock-v589</protocol.protocol>
-        <protocol.version>develop-16e17db006-1</protocol.version>
+        <protocol.protocol>bedrock-v594</protocol.protocol>
+        <protocol.version>2.9.21-GHD-SNAPSHOT</protocol.version>
         <log4j2.version>2.17.1</log4j2.version>
         <jline.version>3.21.0</jline.version>
     </properties>
 
     <repositories>
+        <repository>
+            <id>gomme-snapshots</id>
+            <url>https://repo.gomme.dev/repository/snapshots/</url>
+        </repository>
         <repository>
             <id>nukkitx-repo-release</id>
             <url>https://repo.opencollab.dev/maven-releases/</url>
@@ -33,10 +37,6 @@
         <repository>
             <id>waterdog</id>
             <url>https://repo.waterdog.dev/artifactory/main/</url>
-        </repository>
-        <repository>
-            <id>jitpack</id>
-            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
@@ -161,7 +161,7 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.Kaooot.Protocol</groupId>
+            <groupId>com.nukkitx.protocol</groupId>
             <artifactId>${protocol.protocol}</artifactId>
             <version>${protocol.version}</version>
             <scope>compile</scope>

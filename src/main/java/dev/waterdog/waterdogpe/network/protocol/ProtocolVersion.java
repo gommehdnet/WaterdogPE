@@ -49,6 +49,7 @@ import com.nukkitx.protocol.bedrock.v567.Bedrock_v567patch;
 import com.nukkitx.protocol.bedrock.v575.Bedrock_v575;
 import com.nukkitx.protocol.bedrock.v582.Bedrock_v582;
 import com.nukkitx.protocol.bedrock.v589.Bedrock_v589;
+import com.nukkitx.protocol.bedrock.v594.Bedrock_v594;
 import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec;
 import lombok.ToString;
 
@@ -91,7 +92,8 @@ public enum ProtocolVersion {
         .build(), 11),
     MINECRAFT_PE_1_19_70(575, Bedrock_v575.V575_CODEC, 11),
     MINECRAFT_PE_1_19_80(582, Bedrock_v582.V582_CODEC, 11),
-    MINECRAFT_PE_1_20_0(589, Bedrock_v589.V589_CODEC, 11);
+    MINECRAFT_PE_1_20_0(589, Bedrock_v589.V589_CODEC, 11),
+    MINECRAFT_PE_1_20_10(594, Bedrock_v594.V594_CODEC, 11);
 
     private static final ProtocolVersion[] VALUES = values();
 

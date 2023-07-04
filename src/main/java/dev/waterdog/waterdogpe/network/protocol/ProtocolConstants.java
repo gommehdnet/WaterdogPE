@@ -18,9 +18,43 @@ package dev.waterdog.waterdogpe.network.protocol;
 import com.google.common.base.Preconditions;
 import dev.waterdog.waterdogpe.ProxyServer;
 import dev.waterdog.waterdogpe.WaterdogPE;
-import dev.waterdog.waterdogpe.network.protocol.codec.*;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec313;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec332;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec340;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec354;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec361;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec388;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec389;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec390;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec407;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec408;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec419;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec422;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec428;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec431;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec440;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec448;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec465;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec471;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec475;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec486;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec503;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec527;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec534;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec544;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec545;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec554;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec557;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec560;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec567;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec567Patch;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec568;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec575;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec582;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec589;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec594;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
-
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -92,6 +126,7 @@ public class ProtocolConstants {
         registerCodec(ProtocolVersion.MINECRAFT_PE_1_19_70, new BedrockCodec575());
         registerCodec(ProtocolVersion.MINECRAFT_PE_1_19_80, new BedrockCodec582());
         registerCodec(ProtocolVersion.MINECRAFT_PE_1_20_0, new BedrockCodec589());
+        registerCodec(ProtocolVersion.MINECRAFT_PE_1_20_10, new BedrockCodec594());
     }
 
     /**
