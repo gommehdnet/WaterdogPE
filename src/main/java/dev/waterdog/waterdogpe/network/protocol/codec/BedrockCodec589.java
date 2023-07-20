@@ -20,6 +20,7 @@ import com.nukkitx.protocol.bedrock.packet.EmotePacket;
 import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.v388.serializer.EmoteSerializer_v388;
 import com.nukkitx.protocol.bedrock.v589.BedrockPacketHelper_v589;
+import com.nukkitx.protocol.bedrock.v589.serializer.EmoteSerializer_v589;
 import com.nukkitx.protocol.bedrock.v589.serializer.StartGameSerializer_v589;
 import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
 
@@ -43,6 +44,6 @@ public class BedrockCodec589 extends BedrockCodec582 {
         builder.registerPacket(StartGamePacket.class, StartGameSerializer_v589.INSTANCE, 11);
 
         builder.deregisterPacket(EmotePacket.class);
-        builder.registerPacket(EmotePacket.class, EmoteSerializer_v388.INSTANCE, 138);
+        builder.registerPacket(EmotePacket.class, EmoteSerializer_v589.INSTANCE, 138);
     }
 }

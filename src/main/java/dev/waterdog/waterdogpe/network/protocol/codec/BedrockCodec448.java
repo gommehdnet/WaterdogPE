@@ -48,6 +48,7 @@ public class BedrockCodec448 extends BedrockCodec440 {
 
     @Override
     public void registerCommands(BedrockPacketCodec.Builder builder) {
+        builder.deregisterPacket(AvailableCommandsPacket.class);
         builder.registerPacket(AvailableCommandsPacket.class, AvailableCommandsSerializer_v448.INSTANCE, 76);
     }
 }

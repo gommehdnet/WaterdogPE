@@ -16,7 +16,9 @@
 package dev.waterdog.waterdogpe.network.protocol.codec;
 
 import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
+import com.nukkitx.protocol.bedrock.packet.AvailableCommandsPacket;
 import com.nukkitx.protocol.bedrock.v594.BedrockPacketHelper_v594;
+import com.nukkitx.protocol.bedrock.v594.serializer.AvailableCommandsSerializer_v594;
 import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
 
 /**
@@ -34,5 +36,8 @@ public class BedrockCodec594 extends BedrockCodec589 {
     public void buildCodec(BedrockPacketCodec.Builder builder) {
         super.buildCodec(builder);
         builder.helper(BedrockPacketHelper_v594.INSTANCE);
+
+        builder.deregisterPacket(AvailableCommandsPacket.class);
+        builder.registerPacket(AvailableCommandsPacket.class, AvailableCommandsSerializer_v594.INSTANCE, 76);
     }
 }

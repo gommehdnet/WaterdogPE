@@ -15,13 +15,12 @@
 
 package dev.waterdog.waterdogpe.command;
 
-import com.nukkitx.protocol.bedrock.data.command.CommandData;
-import com.nukkitx.protocol.bedrock.data.command.CommandEnumData;
-import com.nukkitx.protocol.bedrock.data.command.CommandParam;
-import com.nukkitx.protocol.bedrock.data.command.CommandParamData;
+import com.nukkitx.protocol.bedrock.data.command.*;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Base class for proxy commands
@@ -85,12 +84,14 @@ public abstract class Command {
     }
 
     public CommandData craftNetwork() {
-        CommandParamData[][] parameterData = new CommandParamData[][]{{
-                new CommandParamData(this.name, true, null, CommandParam.TEXT, null, Collections.emptyList())
-        }};
+        CommandOverloadData[] parameterData = new CommandOverloadData[]{
+                new CommandOverloadData(false, new CommandParamData[]{
+                        new CommandParamData(this.name, true, null, CommandParam.TEXT, null, Collections.emptyList())
+                })
+        };
         Set<String> aliases = new HashSet<>(getAliases().length + 1);
         Collections.addAll(aliases, getAliases());
         aliases.add(this.name);
-        return new CommandData(this.name, this.getDescription(), Collections.emptyList(), (byte) 0, new CommandEnumData(this.name, aliases.toArray(ArrayUtils.EMPTY_STRING_ARRAY), false), parameterData);
+        return new CommandData(this.name, this.getDescription(), Collections.emptyList(), (byte) 0, new CommandEnumData(this.name, aliases.toArray(ArrayUtils.EMPTY_STRING_ARRAY), false), Collections.emptyList(), parameterData);
     }
 }
