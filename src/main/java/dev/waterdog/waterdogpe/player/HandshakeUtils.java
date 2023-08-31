@@ -97,7 +97,7 @@ public class HandshakeUtils {
                 return false;
             }
 
-            if (lastKey.equals(EncryptionUtils.getMojangPublicKey())) {
+            if (lastKey.equals(EncryptionUtils.getMojangPublicKey()) || lastKey.equals(EncryptionUtils.getMojangPublicKeyOld())) {
                 authed = true;
             } else if (authed) {
                 return !iterator.hasNext();
