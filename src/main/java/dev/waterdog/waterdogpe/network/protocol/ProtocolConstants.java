@@ -54,6 +54,7 @@ import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec575;
 import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec582;
 import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec589;
 import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec594;
+import dev.waterdog.waterdogpe.network.protocol.codec.BedrockCodec618;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import java.util.EnumMap;
 import java.util.Map;
@@ -127,6 +128,7 @@ public class ProtocolConstants {
         registerCodec(ProtocolVersion.MINECRAFT_PE_1_19_80, new BedrockCodec582());
         registerCodec(ProtocolVersion.MINECRAFT_PE_1_20_0, new BedrockCodec589());
         registerCodec(ProtocolVersion.MINECRAFT_PE_1_20_10, new BedrockCodec594());
+        registerCodec(ProtocolVersion.MINECRAFT_PE_1_20_30, new BedrockCodec618());
     }
 
     /**
