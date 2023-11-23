@@ -33,9 +33,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.extern.log4j.Log4j2;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.cloudburstmc.netty.channel.raknet.RakChannel;
-import org.cloudburstmc.netty.channel.raknet.RakDisconnectReason;
 import org.cloudburstmc.netty.handler.codec.raknet.common.RakSessionCodec;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
 import org.cloudburstmc.protocol.bedrock.codec.BedrockCodecHelper;
@@ -124,7 +122,7 @@ public class BedrockClientConnection extends SimpleChannelInboundHandler<Bedrock
     }
 
     @Override
-    public void enableEncryption(@NonNull SecretKey secretKey) {
+    public void enableEncryption(SecretKey secretKey) {
         if (!secretKey.getAlgorithm().equals("AES")) {
             throw new IllegalArgumentException("Invalid key algorithm");
         }
@@ -162,12 +160,7 @@ public class BedrockClientConnection extends SimpleChannelInboundHandler<Bedrock
 
     @Override
     public void disconnect() {
-        if (this.channel instanceof RakChannel rakChannel &&
-                rakChannel.rakPipeline().get(RakSessionCodec.NAME) instanceof RakSessionCodec codec) {
-            codec.disconnect(RakDisconnectReason.DISCONNECTED);
-        } else {
-            this.channel.close();
-        }
+        this.channel.disconnect();
     }
 
     @Override

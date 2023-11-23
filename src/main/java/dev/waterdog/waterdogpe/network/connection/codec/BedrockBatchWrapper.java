@@ -61,6 +61,7 @@ public class BedrockBatchWrapper extends AbstractReferenceCounted {
         batch.setRefCnt(1);
         batch.modified = false;
         batch.skipQueue = false;
+        batch.algorithm = null;
         return batch;
     }
 
@@ -74,13 +75,14 @@ public class BedrockBatchWrapper extends AbstractReferenceCounted {
 
     @Override
     protected void deallocate() {
-        this.packets.forEach(ReferenceCounted::release);
-        ReferenceCountUtil.release(this.uncompressed);
-        ReferenceCountUtil.release(this.compressed);
+        this.packets.forEach(ReferenceCountUtil::safeRelease);
+        ReferenceCountUtil.safeRelease(this.uncompressed);
+        ReferenceCountUtil.safeRelease(this.compressed);
         this.compressed = null;
         this.uncompressed = null;
         this.packets.clear();
         this.modified = false;
+        this.algorithm = null;
         this.handle.recycle(this);
     }
 

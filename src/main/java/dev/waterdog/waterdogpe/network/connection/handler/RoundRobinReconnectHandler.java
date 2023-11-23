@@ -31,7 +31,7 @@ public class RoundRobinReconnectHandler implements IReconnectHandler {
     private RoundRobinIterator<String> iterator;
 
     @Override
-    public ServerInfo getFallbackServer(ProxiedPlayer player, ServerInfo oldServer, String message) {
+    public ServerInfo getFallbackServer(ProxiedPlayer player, ServerInfo oldServer, ReconnectReason reason, String kickMessage) {
         ProxyServer proxy = ProxyServer.getInstance();
         if (proxy.getConfiguration().getPriorities().size() < 2) {
             throw new IllegalStateException("RoundRobinReconnectHandler required at least two priority servers set");
@@ -43,7 +43,7 @@ public class RoundRobinReconnectHandler implements IReconnectHandler {
 
         while (iterator.hasNext()) {
             String server = iterator.next();
-            if (!server.equals(oldServer.getServerName())) {
+            if (oldServer == null || !server.equals(oldServer.getServerName())) {
                 return proxy.getServerInfo(server);
             }
         }

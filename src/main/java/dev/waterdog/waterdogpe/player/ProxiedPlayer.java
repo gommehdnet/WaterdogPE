@@ -16,6 +16,7 @@
 package dev.waterdog.waterdogpe.player;
 
 import dev.waterdog.waterdogpe.network.connection.codec.compression.CompressionAlgorithm;
+import dev.waterdog.waterdogpe.network.connection.handler.ReconnectReason;
 import dev.waterdog.waterdogpe.network.connection.peer.BedrockServerSession;
 import dev.waterdog.waterdogpe.network.connection.client.ClientConnection;
 import dev.waterdog.waterdogpe.network.protocol.handler.PluginPacketHandler;
@@ -60,6 +61,9 @@ public class ProxiedPlayer implements CommandSender {
     private final CompressionAlgorithm compression;
 
     private final AtomicBoolean disconnected = new AtomicBoolean(false);
+    private final AtomicBoolean loginCompleted = new AtomicBoolean(false);
+    private volatile String disconnectReason;
+
     private final RewriteData rewriteData = new RewriteData();
     private final LoginData loginData;
     private final RewriteMaps rewriteMaps;
@@ -119,6 +123,8 @@ public class ProxiedPlayer implements CommandSender {
     public void initPlayer() {
         PlayerLoginEvent event = new PlayerLoginEvent(this);
         this.proxy.getEventManager().callEvent(event).whenComplete((futureEvent, error) -> {
+            this.loginCompleted.set(true);
+
             if (error != null) {
                 this.getLogger().throwing(error);
                 this.disconnect(new TranslationContainer("waterdog.downstream.initial.connect"));
@@ -127,6 +133,11 @@ public class ProxiedPlayer implements CommandSender {
 
             if (event.isCancelled()) {
                 this.disconnect(event.getCancelReason());
+                return;
+            }
+
+            if (!this.isConnected() || this.disconnectReason != null) { // player might have disconnected itself
+                this.disconnect(this.disconnectReason == null ? "Already disconnected" : this.disconnectReason);
                 return;
             }
 
@@ -157,6 +168,10 @@ public class ProxiedPlayer implements CommandSender {
      * Determines the first player the player gets transferred to based on the currently present JoinHandler.
      */
     public final void initialConnect() {
+        if (this.disconnected.get()) {
+            return;
+        }
+
         this.connection.setPacketHandler(new ConnectedUpstreamHandler(this));
         // Determine forced host first
         ServerInfo initialServer = this.proxy.getForcedHostHandler().resolveForcedHost(this.loginData.getJoinHostname(), this);
@@ -182,6 +197,8 @@ public class ProxiedPlayer implements CommandSender {
      */
     public void connect(ServerInfo serverInfo) {
         Preconditions.checkNotNull(serverInfo, "Server info can not be null!");
+        Preconditions.checkArgument(this.isConnected(), "User not connected");
+        Preconditions.checkArgument(this.loginCompleted.get(), "User not logged in");
 
         ServerTransferRequestEvent event = new ServerTransferRequestEvent(this, serverInfo);
         ProxyServer.getInstance().getEventManager().callEvent(event);
@@ -191,12 +208,12 @@ public class ProxiedPlayer implements CommandSender {
 
         ServerInfo targetServer = event.getTargetServer();
         if (this.clientConnection != null && this.clientConnection.getServerInfo() == targetServer) {
-            this.sendMessage(new TranslationContainer("waterdog.downstream.connected", serverInfo.getServerName()));
+            this.sendMessage(new TranslationContainer("waterdog.downstream.connected", targetServer.getServerName()));
             return;
         }
 
         if (this.pendingServers.contains(targetServer)) {
-            this.sendMessage(new TranslationContainer("waterdog.downstream.connecting", serverInfo.getServerName()));
+            this.sendMessage(new TranslationContainer("waterdog.downstream.connecting", targetServer.getServerName()));
             return;
         }
 
@@ -205,7 +222,7 @@ public class ProxiedPlayer implements CommandSender {
         ClientConnection connectingServer = this.getPendingConnection();
         if (connectingServer != null) {
             if (connectingServer.getServerInfo() == targetServer) {
-                this.sendMessage(new TranslationContainer("waterdog.downstream.connecting", serverInfo.getServerName()));
+                this.sendMessage(new TranslationContainer("waterdog.downstream.connecting", targetServer.getServerName()));
                 return;
             } else {
                 connectingServer.disconnect();
@@ -281,7 +298,7 @@ public class ProxiedPlayer implements CommandSender {
 
         this.getLogger().error("[{}|{}] Unable to connect to downstream {}", this.getAddress(), this.getName(), targetServer.getServerName(), error);
         String exceptionMessage = Objects.requireNonNullElse(error.getLocalizedMessage(), error.getClass().getSimpleName());
-        if (this.sendToFallback(targetServer, exceptionMessage)) {
+        if (this.sendToFallback(targetServer, ReconnectReason.EXCEPTION, exceptionMessage)) {
             this.sendMessage(new TranslationContainer("waterdog.connected.fallback", targetServer.getServerName()));
         } else {
             this.disconnect(new TranslationContainer("waterdog.downstream.transfer.failed", targetServer.getServerName(), exceptionMessage));
@@ -310,9 +327,17 @@ public class ProxiedPlayer implements CommandSender {
      * @param reason The disconnect reason the player will see on his disconnect screen (Supports Color Codes)
      */
     public void disconnect(String reason) {
+        if (!this.loginCompleted.get()) {
+            // Wait until PlayerLoginEvent completes
+            this.disconnectReason = reason;
+            return;
+        }
+
         if (!this.disconnected.compareAndSet(false, true)) {
             return;
         }
+
+        this.disconnectReason = reason;
 
         PlayerDisconnectedEvent event = new PlayerDisconnectedEvent(this, reason);
         this.proxy.getEventManager().callEvent(event);
@@ -335,16 +360,26 @@ public class ProxiedPlayer implements CommandSender {
         this.getLogger().info("[{}|{}] -> Upstream has disconnected: {}", this.getAddress(), this.getName(), reason);
     }
 
+    public boolean sendToFallback(ServerInfo oldServer, String message) {
+        return this.sendToFallback(oldServer, ReconnectReason.UNKNOWN, message);
+    }
+
     /**
      * Send player to fallback server if any exists.
      *
      * @param oldServer server from which was player disconnected.
      * @param reason    disconnected reason.
+     * @param message    disconnected message.
      * @return if connection to downstream was successful.
      */
-    public boolean sendToFallback(ServerInfo oldServer, String reason) {
-        ServerInfo fallbackServer = this.proxy.getReconnectHandler().getFallbackServer(this, oldServer, reason);
+    public boolean sendToFallback(ServerInfo oldServer, ReconnectReason reason, String message) {
+        if (!this.isConnected()) {
+            return false;
+        }
+
+        ServerInfo fallbackServer = this.proxy.getReconnectHandler().getFallbackServer(this, oldServer, reason, message);
         if (fallbackServer != null && fallbackServer != this.getServerInfo()) {
+            this.getLogger().debug("[{}] Connecting to fallback server {} with reason {}", this.getName(), fallbackServer.getServerName(), reason.getName());
             this.connect(fallbackServer);
             return true;
         }
@@ -353,9 +388,8 @@ public class ProxiedPlayer implements CommandSender {
 
     // TODO: I'm not super happy with this, but moving it to a netty handler would mean anyone who implements own handler,
     //  has to copy that piece of code. PLS: find a better place for this two methods
-    public final void onDownstreamTimeout() {
-        ServerInfo serverInfo = this.getServerInfo();
-        if (!this.sendToFallback(serverInfo, "Downstream Timeout")) {
+    public final void onDownstreamTimeout(ServerInfo serverInfo) {
+        if (!this.sendToFallback(serverInfo, ReconnectReason.TIMEOUT, "Downstream Timeout")) {
             this.disconnect(new TranslationContainer("waterdog.downstream.down", serverInfo.getServerName(), "Timeout"));
         }
     }
@@ -875,6 +909,10 @@ public class ProxiedPlayer implements CommandSender {
 
     public Collection<PluginPacketHandler> getPluginPacketHandlers() {
         return this.pluginPacketHandlers;
+    }
+
+    public String getDisconnectReason() {
+        return this.disconnectReason;
     }
 
     @Override

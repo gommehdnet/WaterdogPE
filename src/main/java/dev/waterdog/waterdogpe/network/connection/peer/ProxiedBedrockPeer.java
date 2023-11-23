@@ -28,9 +28,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.log4j.Log4j2;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.cloudburstmc.netty.channel.raknet.RakChannel;
-import org.cloudburstmc.netty.channel.raknet.RakChildChannel;
 import org.cloudburstmc.netty.channel.raknet.config.RakChannelOption;
 import org.cloudburstmc.netty.handler.codec.raknet.common.RakSessionCodec;
 import org.cloudburstmc.protocol.bedrock.BedrockPeer;
@@ -51,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 @Log4j2
 public class ProxiedBedrockPeer extends BedrockPeer {
-    private ProxiedBedrockSession firstSession;
+    private BedrockServerSession firstSession;
     private CompressionAlgorithm compressionAlgorithm;
 
     public ProxiedBedrockPeer(Channel channel, BedrockSessionFactory factory) {
@@ -61,15 +59,15 @@ public class ProxiedBedrockPeer extends BedrockPeer {
     private void onBedrockBatch(BedrockBatchWrapper batch) {
         if (this.firstSession == null) {
             for (BedrockPacketWrapper wrapper : batch.getPackets()) {
-                this.getSession(wrapper.getTargetSubClientId()).onPacket(wrapper.getPacket());
+                this.getSession(wrapper.getTargetSubClientId()).onPacket(wrapper);
             }
         } else {
             this.firstSession.onBedrockBatch(batch);
         }
     }
 
-    private ProxiedBedrockSession getSession(int sessionId) {
-        ProxiedBedrockSession session = (ProxiedBedrockSession) this.sessions.computeIfAbsent(sessionId, this::onSessionCreated);
+    private BedrockServerSession getSession(int sessionId) {
+        BedrockServerSession session = (BedrockServerSession) this.sessions.computeIfAbsent(sessionId, this::onSessionCreated);
         if (this.firstSession == null) {
             this.firstSession = session;
         }
@@ -77,8 +75,8 @@ public class ProxiedBedrockPeer extends BedrockPeer {
     }
 
     @Override
-    protected ProxiedBedrockSession onSessionCreated(int sessionId) {
-        ProxiedBedrockSession session = (ProxiedBedrockSession) super.onSessionCreated(sessionId);
+    protected BedrockServerSession onSessionCreated(int sessionId) {
+        BedrockServerSession session = (BedrockServerSession) super.onSessionCreated(sessionId);
         if (this.firstSession == null) {
             this.firstSession = session;
         }
@@ -95,7 +93,7 @@ public class ProxiedBedrockPeer extends BedrockPeer {
 
     @Override
     protected void onTick() {
-        if (!this.packetQueue.isEmpty()) {
+        if (!this.closed.get() && !this.packetQueue.isEmpty()) {
             BedrockBatchWrapper batch = BedrockBatchWrapper.newInstance();
 
             BedrockPacketWrapper packet;
@@ -104,10 +102,6 @@ public class ProxiedBedrockPeer extends BedrockPeer {
             }
             this.channel.writeAndFlush(batch);
         }
-    }
-
-    public void sendPacket(BedrockPacketWrapper wrapper) {
-        this.packetQueue.offer(ReferenceCountUtil.retain(wrapper));
     }
 
     public void sendPacket(BedrockBatchWrapper wrapper) {
@@ -153,7 +147,7 @@ public class ProxiedBedrockPeer extends BedrockPeer {
     }
 
     @Override
-    public void enableEncryption(@NonNull SecretKey secretKey) {
+    public void enableEncryption(SecretKey secretKey) {
         Objects.requireNonNull(secretKey, "secretKey");
         if (!secretKey.getAlgorithm().equals("AES")) {
             throw new IllegalArgumentException("Invalid key algorithm");

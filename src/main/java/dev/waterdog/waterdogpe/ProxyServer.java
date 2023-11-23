@@ -25,9 +25,13 @@ import dev.waterdog.waterdogpe.logger.MainLogger;
 import dev.waterdog.waterdogpe.network.EventLoops;
 import dev.waterdog.waterdogpe.network.NetworkMetrics;
 import dev.waterdog.waterdogpe.network.connection.codec.compression.CompressionAlgorithm;
-import dev.waterdog.waterdogpe.network.connection.codec.initializer.ProxiedServerSessionInitializer;
 import dev.waterdog.waterdogpe.network.connection.codec.initializer.OfflineServerChannelInitializer;
-import dev.waterdog.waterdogpe.network.connection.handler.*;
+import dev.waterdog.waterdogpe.network.connection.codec.initializer.ProxiedServerSessionInitializer;
+import dev.waterdog.waterdogpe.network.connection.codec.query.QueryHandler;
+import dev.waterdog.waterdogpe.network.connection.handler.DefaultForcedHostHandler;
+import dev.waterdog.waterdogpe.network.connection.handler.IForcedHostHandler;
+import dev.waterdog.waterdogpe.network.connection.handler.IJoinHandler;
+import dev.waterdog.waterdogpe.network.connection.handler.IReconnectHandler;
 import dev.waterdog.waterdogpe.network.protocol.ProtocolCodecs;
 import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
 import dev.waterdog.waterdogpe.network.protocol.updaters.CodecUpdaterCommands;
@@ -37,17 +41,17 @@ import dev.waterdog.waterdogpe.packs.PackManager;
 import dev.waterdog.waterdogpe.player.PlayerManager;
 import dev.waterdog.waterdogpe.player.ProxiedPlayer;
 import dev.waterdog.waterdogpe.plugin.PluginManager;
-import dev.waterdog.waterdogpe.network.connection.codec.query.QueryHandler;
 import dev.waterdog.waterdogpe.scheduler.WaterdogScheduler;
-import dev.waterdog.waterdogpe.security.SecurityListener;
 import dev.waterdog.waterdogpe.security.SecurityManager;
 import dev.waterdog.waterdogpe.utils.ConfigurationManager;
 import dev.waterdog.waterdogpe.utils.ThreadFactoryBuilder;
 import dev.waterdog.waterdogpe.utils.bstats.Metrics;
-import dev.waterdog.waterdogpe.utils.config.*;
+import dev.waterdog.waterdogpe.utils.config.LangConfig;
 import dev.waterdog.waterdogpe.utils.config.proxy.NetworkSettings;
 import dev.waterdog.waterdogpe.utils.config.proxy.ProxyConfig;
-import dev.waterdog.waterdogpe.utils.types.*;
+import dev.waterdog.waterdogpe.utils.reporting.ErrorReporting;
+import dev.waterdog.waterdogpe.utils.types.TextContainer;
+import dev.waterdog.waterdogpe.utils.types.TranslationContainer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -94,6 +98,7 @@ public class ProxyServer {
     private final ConsoleCommandSender commandSender;
 
     private final SecurityManager securityManager;
+    private final ErrorReporting errorReporting;
 
     private IReconnectHandler reconnectHandler;
     private IJoinHandler joinHandler;
@@ -103,7 +108,7 @@ public class ProxyServer {
     private final EventLoopGroup workerEventLoopGroup;
     private final ScheduledExecutorService tickExecutor;
     private ScheduledFuture<?> tickFuture;
-    private boolean shutdown = false;
+    private volatile boolean shutdown = false;
     private int currentTick = 0;
 
     public ProxyServer(MainLogger logger, String filePath, String pluginPath) throws InvalidConfigurationException {
@@ -130,6 +135,7 @@ public class ProxyServer {
         this.configurationManager = new ConfigurationManager(this);
         this.configurationManager.loadProxyConfig();
         this.configurationManager.loadLanguage();
+        this.errorReporting = new ErrorReporting(this);
 
         if (!this.getNetworkSettings().enableIpv6()) {
             // Some devices and networks may not support IPv6
@@ -172,21 +178,23 @@ public class ProxyServer {
         this.bossEventLoopGroup = channelType.newEventLoopGroup(0, bossFactory);
 
         // Default Handlers
-        this.reconnectHandler = this.configurationManager.loadServiceProvider(this.getConfiguration().getReconnectHandler(), IReconnectHandler.class);
-        this.joinHandler = this.configurationManager.loadServiceProvider(this.getConfiguration().getJoinHandler(), IJoinHandler.class);
         this.forcedHostHandler = new DefaultForcedHostHandler();
         this.pluginManager = new PluginManager(this);
-        this.configurationManager.loadServerInfos(this.serverInfoMap);
         this.scheduler = new WaterdogScheduler(this);
         this.playerManager = new PlayerManager(this);
         this.eventManager = new EventManager(this);
         this.packManager = new PackManager(this);
         this.securityManager = new SecurityManager(this);
-
         this.commandSender = new ConsoleCommandSender(this);
         this.commandMap = new DefaultCommandMap(this, SimpleCommandMap.DEFAULT_PREFIX);
         this.console = new TerminalConsole(this);
         this.serverId = ThreadLocalRandom.current().nextLong();
+
+        this.pluginManager.loadAllPlugins();
+        this.configurationManager.loadServerInfos(this.serverInfoMap);
+        this.reconnectHandler = this.configurationManager.loadServiceProvider(this.getConfiguration().getReconnectHandler(), IReconnectHandler.class, this.pluginManager);
+        this.joinHandler = this.configurationManager.loadServiceProvider(this.getConfiguration().getJoinHandler(), IJoinHandler.class, this.pluginManager);
+
         this.boot();
     }
 
@@ -197,8 +205,10 @@ public class ProxyServer {
     private void boot() {
         this.console.getConsoleThread().start();
         this.pluginManager.enableAllPlugins();
-        if (this.getConfiguration().useFastCodec()) {
-            this.logger.info("Using fast codec! Please ensure plugin compatibility!");
+        if (Boolean.parseBoolean(System.getProperty("disableFastCodec", "false"))) {
+            this.logger.warning("Fast codec is disabled! This may impact the proxy performance!");
+        } else {
+            this.logger.info("Using fast codec for improved performance and stability!");
             if (this.getConfiguration().injectCommands()) {
                 ProtocolCodecs.addUpdater(new CodecUpdaterCommands());
             }
@@ -208,9 +218,9 @@ public class ProxyServer {
             }
         }
 
-        if(this.getConfiguration().isEnableAnonymousStatistics()){
-            Metrics.WaterdogMetrics.startMetrics(this, this.getConfiguration());
+        if (this.getConfiguration().isEnableAnonymousStatistics()) {
             this.getLogger().info("Enabling anonymous statistics.");
+            Metrics.startMetrics(this, this.getConfiguration());
         }
 
         if (this.getConfiguration().enableResourcePacks()) {
@@ -218,7 +228,7 @@ public class ProxyServer {
         }
 
         InetSocketAddress bindAddress = this.getConfiguration().getBindAddress();
-        this.logger.info("Binding to " + bindAddress);
+        this.logger.info("Binding to {}", bindAddress);
 
         if (this.getConfiguration().enableQuery()) {
             this.queryHandler = new QueryHandler(this);
@@ -319,10 +329,15 @@ public class ProxyServer {
         this.tickExecutor.shutdown();
         this.scheduler.shutdown();
         this.eventManager.getThreadedExecutor().shutdown();
+
+        if (Metrics.get() != null) {
+            Metrics.get().shutdown();
+        }
+
         try {
             for (Channel channel : this.serverChannels) {
                 if (channel.isOpen()) {
-                    channel.close().sync();
+                    channel.close().syncUninterruptibly();
                 }
             }
         } catch (Exception e) {
@@ -358,7 +373,7 @@ public class ProxyServer {
         }
 
         Command command = this.getCommandMap().getCommand(args[0]);
-        if (command == null)  {
+        if (command == null) {
             return false;
         }
 
@@ -452,6 +467,17 @@ public class ProxyServer {
     public ServerInfo getServerInfo(String serverName) {
         Preconditions.checkNotNull(serverName, "ServerName can not be null!");
         return this.serverInfoMap.get(serverName);
+    }
+
+    public <T extends ServerInfo> T getServerInfo(String serverName, Class<T> implementation) {
+        Preconditions.checkNotNull(serverName, "ServerName can not be null!");
+        Preconditions.checkNotNull(implementation, "Implementation class can not be null!");
+
+        ServerInfo serverInfo = this.serverInfoMap.get(serverName);
+        if (serverInfo != null && !implementation.isAssignableFrom(serverInfo.getClass())) {
+            throw new IllegalStateException("Server " + serverName + " is not type of " + implementation.getSimpleName());
+        }
+        return (T) serverInfo;
     }
 
     /**
@@ -581,5 +607,9 @@ public class ProxyServer {
 
     public EventLoopGroup getWorkerEventLoopGroup() {
         return this.workerEventLoopGroup;
+    }
+
+    public ErrorReporting getErrorReporting() {
+        return errorReporting;
     }
 }

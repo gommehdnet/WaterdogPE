@@ -16,16 +16,22 @@
 package dev.waterdog.waterdogpe;
 
 import dev.waterdog.waterdogpe.logger.MainLogger;
+import dev.waterdog.waterdogpe.network.protocol.ProtocolVersion;
+import dev.waterdog.waterdogpe.utils.reporting.Log4j2ErrorReporter;
 import io.netty.util.ResourceLeakDetector;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,19 +45,14 @@ public class WaterdogPE {
         Thread.currentThread().setName("WaterdogPE-main");
         System.out.println("Starting WaterdogPE....");
         System.setProperty("log4j.skipJansi", "false");
-        
-        if (versionInfo.debug()) {
-            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.SIMPLE);
-        } else {
-            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
-        }
 
         MainLogger logger = MainLogger.getLogger();
         logger.info("§bStarting WaterDogPE proxy software!");
-        logger.info("§3Software Version: " + versionInfo.baseVersion());
-        logger.info("§3Build Version: " + versionInfo.buildVersion());
-        logger.info("§3Development Build: " + versionInfo.debug());
-        logger.info("§3Software Authors: " + versionInfo.author());
+        logger.info("§3Software Version: {}", versionInfo.baseVersion());
+        logger.info("§3Build Version: {}", versionInfo.buildVersion());
+        logger.info("§3Development Build: {}", versionInfo.debug());
+        logger.info("§3Software Authors: {}", versionInfo.author());
+        logger.info("§3Latest Supported Game Version: {}", ProtocolVersion.latest().getMinecraftVersion());
 
 
         int javaVersion = getJavaVersion();
@@ -63,7 +64,18 @@ public class WaterdogPE {
         if (versionInfo.buildVersion().equals("#build") || versionInfo.branchName().equals("unknown")) {
             logger.warning("Custom build? Unofficial builds should be not run in production!");
         } else {
-            logger.info("§3Discovered branch §b" + versionInfo.branchName() + "§3 commitId §b" + versionInfo.commitId());
+            logger.info("§3Discovered branch §b{}§3 commitId §b{}", versionInfo.branchName(), versionInfo.commitId());
+        }
+
+        if (versionInfo.debug()) {
+            setLeakDetection(ResourceLeakDetector.Level.SIMPLE);
+        } else {
+            setLeakDetection(ResourceLeakDetector.Level.DISABLED);
+        }
+
+        logger.info("§eUsing memory leak detection level: {}", ResourceLeakDetector.getLevel());
+        if (!versionInfo.debug() && ResourceLeakDetector.getLevel().ordinal() > ResourceLeakDetector.Level.SIMPLE.ordinal()) {
+            logger.warning("§eUsing higher memory leak detection levels in production environment can affect application stability and performance!");
         }
 
         try {
@@ -79,7 +91,7 @@ public class WaterdogPE {
      */
     protected static void shutdownHook() {
         LogManager.shutdown();
-        System.exit(0); // force exit
+        Runtime.getRuntime().halt(0); // force exit
     }
 
     private static VersionInfo loadVersion() {
@@ -129,5 +141,11 @@ public class WaterdogPE {
             version = version.substring(0, index);
         }
         return Integer.parseInt(version);
+    }
+
+    private static void setLeakDetection(ResourceLeakDetector.Level level) {
+        if (ResourceLeakDetector.getLevel().ordinal() < level.ordinal()) {
+            ResourceLeakDetector.setLevel(level);
+        }
     }
 }
